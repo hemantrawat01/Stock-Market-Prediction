@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QuantPulse AI - Indian & Global Market Time Series Prediction (₹ INR)</title>
+
+  <!-- Google Fonts & Tailwind CSS CDN -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- FontAwesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <!-- Chart.js 4 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+
+  <!-- Custom Stylesheets -->
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <link rel="stylesheet" href="/static/css/reactive.css" />
+</head>
+
+<body class="antialiased select-none">
+  <!-- Ambient Background Lighting Blobs -->
+  <div class="ambient-glow">
+    <div class="ambient-blob-1"></div>
+    <div class="ambient-blob-2"></div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed top-5 right-5 z-[9999] flex flex-col gap-2 max-w-sm"></div>
+
+  <!-- Top Navigation Bar -->
+  <header class="sticky top-0 z-40 w-full theme-header px-4 lg:px-8 py-3 transition-colors duration-300">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+      
+      <!-- Brand Name (Simple & Clean) -->
+      <div class="flex items-center gap-2.5 flex-shrink-0 cursor-pointer" onclick="loadStockData('NIFTY50')">
+        <span class="font-extrabold text-xl tracking-tight theme-text-primary">
+          QuantPulse<span class="text-cyan-400 font-mono text-sm ml-0.5 font-bold">.ai</span>
+        </span>
+        <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 font-mono">
+          ₹ INR
+        </span>
+      </div>
+
+      <!-- Neat Quick Search Bar -->
+      <div class="flex-1 max-w-lg mx-4 hidden md:flex items-center">
+        <div class="neat-search-bar w-full flex items-center bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 focus-within:border-cyan-500/60 focus-within:bg-white/[0.08] focus-within:ring-2 focus-within:ring-cyan-500/20 transition-all duration-200">
+          <i class="fas fa-search text-xs text-slate-400 mr-2.5 flex-shrink-0"></i>
+          <input 
+            type="text" 
+            id="stock-search-input" 
+            placeholder="Search trade (NIFTY 50, BANK NIFTY, Gold, Crude Oil, Bitcoin, USD/INR)..." 
+            class="bg-transparent border-0 outline-none text-xs text-slate-100 placeholder-slate-400 flex-1 min-w-0 font-medium py-1"
+          />
+          <button id="stock-search-btn" class="btn-reactive btn-primary px-3.5 py-1 rounded-lg text-xs font-semibold flex-shrink-0 ml-2 shadow-sm">
+            Search
+          </button>
+        </div>
+      </div>
+
+      <!-- Right Controls: Audio Haptic, Dark/Light Theme Toggle, User Auth -->
+      <div class="flex items-center gap-3">
+        
+        <!-- Currency Pill Indicator -->
+        <div class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold font-mono">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>INR (₹)</span>
+        </div>
+
+        <!-- Tactile Sound Effect Toggle -->
+        <button id="sound-toggle-btn" title="Toggle Reactive Click Sounds" class="btn-reactive btn-secondary w-9 h-9 rounded-xl flex items-center justify-center text-sm">
+          <i class="fas fa-volume-mute text-slate-400"></i>
+        </button>
+
+        <!-- Togglable Theme Switch (Dark / Light) -->
+        <div class="flex items-center gap-1.5" title="Toggle Dark / Light Theme">
+          <div id="theme-toggle-btn" class="theme-toggle-btn">
+            <div id="theme-toggle-knob" class="theme-toggle-knob">
+              <i class="fas fa-moon"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- User Authentication & Profile Dropdown -->
+        <div id="user-nav-actions" class="flex items-center gap-2">
+          <!-- Injected via auth.js -->
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Mobile Search Row -->
+    <div class="mt-2.5 flex md:hidden items-center">
+      <div class="neat-search-bar w-full flex items-center bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 focus-within:border-cyan-500/60 focus-within:bg-white/[0.08] focus-within:ring-2 focus-within:ring-cyan-500/20 transition-all duration-200">
+        <i class="fas fa-search text-xs text-slate-400 mr-2 flex-shrink-0"></i>
+        <input 
+          type="text" 
+          id="stock-search-input-mobile" 
+          placeholder="Search trade (NIFTY, Gold, Crude)..." 
+          class="bg-transparent border-0 outline-none text-xs text-slate-100 placeholder-slate-400 flex-1 min-w-0 font-medium py-1"
+        />
+        <button onclick="loadStockData(document.getElementById('stock-search-input-mobile').value)" class="btn-reactive btn-primary px-3 py-1 rounded-lg text-xs font-semibold flex-shrink-0 ml-2">
+          Go
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 10 Featured Trades Ribbon & Categories -->
+  <section class="border-b border-white/10 bg-black/15 backdrop-blur-md px-4 lg:px-8 py-3 space-y-2.5">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
+      
+      <!-- Category Filter Pills -->
+      <div class="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 no-scrollbar text-xs">
+        <span class="text-slate-400 font-bold text-[11px] whitespace-nowrap mr-1 flex items-center gap-1">
+          <i class="fas fa-sliders-h text-cyan-400"></i> Categories:
+        </span>
+        <button onclick="filterTradeCategory('ALL')" data-cat="ALL" class="btn-reactive btn-pill cat-pill active">All 10 Trades</button>
+        <button onclick="filterTradeCategory('Indian indices')" data-cat="Indian indices" class="btn-reactive btn-pill cat-pill">Indian Indices</button>
+        <button onclick="filterTradeCategory('Index trading')" data-cat="Index trading" class="btn-reactive btn-pill cat-pill">Index Trading</button>
+        <button onclick="filterTradeCategory('Commodities')" data-cat="Commodities" class="btn-reactive btn-pill cat-pill">Commodities</button>
+        <button onclick="filterTradeCategory('Crypto')" data-cat="Crypto" class="btn-reactive btn-pill cat-pill">Crypto</button>
+        <button onclick="filterTradeCategory('Forex')" data-cat="Forex" class="btn-reactive btn-pill cat-pill">Forex</button>
+        <button onclick="filterTradeCategory('Global indices')" data-cat="Global indices" class="btn-reactive btn-pill cat-pill">Global Indices</button>
+      </div>
+
+      <!-- Live Exchange Rate Indicator -->
+      <div class="flex items-center gap-2 text-[11px] text-slate-400 whitespace-nowrap font-mono">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span>All Trades in Indian Rupees (₹)</span>
+      </div>
+    </div>
+
+    <!-- Live Trade Cards Carousel (10 Featured Markets) -->
+    <div class="max-w-7xl mx-auto overflow-x-auto pb-1.5 no-scrollbar">
+      <div id="featured-trades-container" class="flex items-center gap-3 min-w-max">
+        <!-- Injected dynamically via app.js -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content Layout -->
+  <main class="max-w-7xl mx-auto px-4 lg:px-8 py-6 space-y-6">
+
+    <!-- Active Trade Overview Ribbon (Clean & Simple, No Chunky Logo Box) -->
+    <section class="glass-panel p-5 relative overflow-hidden">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        
+        <!-- Left: Trade Name & Category (Simple & Clean) -->
+        <div>
+          <div class="flex flex-wrap items-center gap-2.5">
+            <h1 id="header-name" class="text-2xl md:text-3xl font-extrabold tracking-tight theme-text-primary">NIFTY 50</h1>
+            <span id="header-category-badge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+              Indian indices
+            </span>
+            <!-- Watchlist Star Button -->
+            <button onclick="toggleWatchlist()" id="watchlist-star-btn" class="btn-reactive text-slate-400 hover:text-amber-400 p-1.5 transition-colors" title="Toggle Watchlist">
+              <i id="watchlist-star-icon" class="far fa-star text-base"></i>
+            </button>
+          </div>
+          <div class="flex items-center gap-2 text-xs text-slate-400 mt-1">
+            <span id="header-unit" class="text-slate-400 font-medium">Points (₹)</span>
+            <span>•</span>
+            <span id="header-source" class="text-slate-400 font-mono text-[11px]">Real-Time Market Data</span>
+          </div>
+        </div>
+
+        <!-- Center: Live Market & Live Analysis Controls -->
+        <div class="flex flex-wrap items-center gap-2 sm:gap-3 py-2 px-3 rounded-2xl bg-white/5 border border-white/10">
+          <!-- Live Streaming Toggle -->
+          <button onclick="toggleLiveStreaming()" id="live-toggle-btn" class="btn-reactive px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm" title="Toggle real-time live market ticks">
+            <span id="live-beacon-indicator" class="live-beacon">
+              <span class="beacon-ping"></span>
+              <span class="beacon-core"></span>
+            </span>
+            <span id="live-toggle-text">LIVE STREAMING</span>
+          </button>
+
+          <!-- Speed Interval Pills -->
+          <div class="flex items-center gap-1 bg-black/20 p-1 rounded-xl text-[11px]">
+            <span class="text-slate-400 font-semibold px-1 hidden sm:inline">Speed:</span>
+            <button onclick="setLiveInterval(2000)" data-speed="2000" class="btn-reactive px-2 py-0.5 rounded-lg font-mono live-pill-speed text-slate-300 hover:text-white">2s</button>
+            <button onclick="setLiveInterval(3000)" data-speed="3000" class="btn-reactive px-2 py-0.5 rounded-lg font-mono live-pill-speed active text-slate-300 hover:text-white">3s</button>
+            <button onclick="setLiveInterval(5000)" data-speed="5000" class="btn-reactive px-2 py-0.5 rounded-lg font-mono live-pill-speed text-slate-300 hover:text-white">5s</button>
+          </div>
+
+          <!-- Instant Live Pulse Tick Button -->
+          <button onclick="triggerManualTick()" id="manual-tick-btn" class="btn-reactive btn-secondary px-2.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5" title="Force an instant market tick & recalculation">
+            <i class="fas fa-bolt text-amber-400 text-[11px]"></i>
+            <span>Tick Now</span>
+          </button>
+
+          <!-- Live Status Telemetry Pill -->
+          <div class="hidden sm:flex items-center gap-2 text-[11px] font-mono text-slate-400 pl-2 border-l border-white/10">
+            <span id="live-tick-countdown" class="text-cyan-400 font-bold">3s</span>
+            <span>•</span>
+            <span id="live-tick-count" class="text-slate-300">0 ticks</span>
+          </div>
+        </div>
+
+        <!-- Right: Current Price & Key Metrics Ribbon in Indian Rupees (₹) -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 md:flex items-center gap-3 sm:gap-6 pt-3 md:pt-0 border-t md:border-t-0 border-white/10">
+          <div>
+            <div class="text-[10px] uppercase font-bold text-slate-400">Current Market Price</div>
+            <div id="metric-current-price" class="text-2xl font-black tracking-tight theme-text-primary font-mono">₹0.00</div>
+            <div id="metric-price-change" class="inline-flex items-center gap-1 text-xs font-semibold badge-bullish">
+              <span>+₹0.00 (+0.00%)</span>
+            </div>
+          </div>
+
+          <div>
+            <div class="text-[10px] uppercase font-bold text-slate-400">52W Range (₹)</div>
+            <div class="text-xs font-semibold font-mono theme-text-primary mt-1">
+              <span id="metric-low-52" class="text-rose-400">₹0.00</span> - <span id="metric-high-52" class="text-emerald-400">₹0.00</span>
+            </div>
+            <div class="text-[10px] text-slate-400">52W Low / High</div>
+          </div>
+
+          <div>
+            <div class="text-[10px] uppercase font-bold text-slate-400">30D Volatility</div>
+            <div id="metric-volatility" class="text-xs font-bold font-mono text-cyan-400 mt-1">0.0%</div>
+            <div class="text-[10px] text-slate-400">Annualized Rate</div>
+          </div>
+
+          <div>
+            <div class="text-[10px] uppercase font-bold text-slate-400">Average Volume</div>
+            <div id="metric-volume" class="text-xs font-bold font-mono theme-text-primary mt-1">0.0M</div>
+            <div class="text-[10px] text-slate-400">Daily Turnover</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Main Workspace: Chart & Model Controls Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- Left 8 Columns: Interactive Chart Station & Predictive Controls -->
+      <div class="lg:col-span-8 space-y-6">
+
+        <!-- Chart Container Card -->
+        <div class="glass-panel p-5 space-y-4">
+          
+          <!-- Chart Header & Toolbar -->
+          <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/10">
+            <!-- Timeframe Range Selectors -->
+            <div class="flex items-center gap-1">
+              <span class="text-[11px] font-semibold text-slate-400 mr-1.5 hidden sm:inline">Range:</span>
+              <button data-range="1mo" class="btn-reactive btn-pill range-pill">1M</button>
+              <button data-range="3mo" class="btn-reactive btn-pill range-pill">3M</button>
+              <button data-range="6mo" class="btn-reactive btn-pill range-pill">6M</button>
+              <button data-range="1y" class="btn-reactive btn-pill range-pill active">1Y</button>
+              <button data-range="2y" class="btn-reactive btn-pill range-pill">2Y</button>
+            </div>
+
+            <!-- Overlays & Export Report Options -->
+            <div class="flex items-center gap-3">
+              <div class="flex items-center gap-2 text-xs text-slate-300">
+                <label class="flex items-center gap-1 cursor-pointer">
+                  <input type="checkbox" data-overlay="sma20" class="overlay-toggle rounded text-cyan-500 focus:ring-0" checked />
+                  <span class="text-[11px]">SMA20</span>
+                </label>
+                <label class="flex items-center gap-1 cursor-pointer">
+                  <input type="checkbox" data-overlay="bb" class="overlay-toggle rounded text-indigo-500 focus:ring-0" checked />
+                  <span class="text-[11px]">Bollinger</span>
+                </label>
+              </div>
+
+              <!-- Export Dropdown -->
+              <div class="relative group">
+                <button class="btn-reactive btn-secondary px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1">
+                  <i class="fas fa-download text-[10px] text-cyan-400"></i>
+                  <span>Export</span>
+                </button>
+                <div class="absolute right-0 mt-1 w-36 rounded-xl glass-panel p-1.5 shadow-xl hidden group-hover:block z-20">
+                  <button onclick="exportPredictionReport('json')" class="btn-reactive w-full text-left px-2 py-1.5 rounded-lg text-[11px] text-slate-200 hover:bg-white/10">
+                    <i class="fas fa-code text-cyan-400 mr-1"></i> JSON (₹ INR)
+                  </button>
+                  <button onclick="exportPredictionReport('csv')" class="btn-reactive w-full text-left px-2 py-1.5 rounded-lg text-[11px] text-slate-200 hover:bg-white/10">
+                    <i class="fas fa-file-csv text-emerald-400 mr-1"></i> CSV (₹ INR)
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Main Chart Canvas Area (All in Indian Rupees ₹) -->
+          <div id="chart-wrapper" class="relative h-[340px] w-full transition-opacity duration-200">
+            <canvas id="main-price-chart"></canvas>
+          </div>
+
+          <!-- Synchronized Volume Sub-chart -->
+          <div class="h-20 w-full pt-1 border-t border-white/5">
+            <canvas id="volume-chart"></canvas>
+          </div>
+        </div>
+
+        <!-- Predictive Analytics Control Station -->
+        <div class="glass-panel p-5 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-white/10">
+            <h2 class="font-bold text-sm tracking-tight flex items-center gap-2 theme-text-primary">
+              <i class="fas fa-brain text-cyan-400 text-xs"></i>
+              <span>Time Series Analysis & Forecasting Engine</span>
+            </h2>
+            <div class="flex items-center gap-2">
+              <label class="flex items-center gap-1.5 cursor-pointer text-xs text-slate-300 bg-white/5 px-2.5 py-1 rounded-xl border border-white/10 hover:border-cyan-500/40 transition-colors">
+                <input type="checkbox" id="live-predict-toggle" class="rounded text-cyan-500 focus:ring-0" checked onchange="toggleLivePredict(this.checked)" />
+                <span class="text-[11px] font-semibold text-cyan-400">⚡ Live Re-Predict on Tick</span>
+              </label>
+              <span class="text-[11px] text-slate-400 font-mono hidden sm:inline">Rupee-Priced Projections</span>
+            </div>
+          </div>
+
+          <!-- Model Selection Pills -->
+          <div class="space-y-1.5">
+            <label class="text-xs font-semibold text-slate-400">Select Time Series Model:</label>
+            <div class="flex flex-wrap gap-2">
+              <button data-model="ensemble" class="btn-reactive btn-pill model-pill active">
+                <i class="fas fa-layer-group mr-1 text-cyan-400"></i> Ensemble Consensus
+              </button>
+              <button data-model="arima" class="btn-reactive btn-pill model-pill">
+                <i class="fas fa-wave-square mr-1 text-blue-400"></i> ARIMA(p,d,q)
+              </button>
+              <button data-model="holt" class="btn-reactive btn-pill model-pill">
+                <i class="fas fa-chart-line mr-1 text-amber-400"></i> Holt's Damped Trend
+              </button>
+              <button data-model="ml_regression" class="btn-reactive btn-pill model-pill">
+                <i class="fas fa-project-diagram mr-1 text-emerald-400"></i> Multi-Lag ML Regression
+              </button>
+              <button data-model="monte_carlo" class="btn-reactive btn-pill model-pill">
+                <i class="fas fa-dice mr-1 text-purple-400"></i> Monte Carlo (GBM)
+              </button>
+            </div>
+          </div>
+
+          <!-- Forecast Horizon Days -->
+          <div class="space-y-1.5">
+            <label class="text-xs font-semibold text-slate-400">Forecast Horizon (Trading Days Ahead):</label>
+            <div class="flex flex-wrap items-center gap-2">
+              <button data-horizon="7" class="btn-reactive btn-pill horizon-pill">7 Days</button>
+              <button data-horizon="14" class="btn-reactive btn-pill horizon-pill active">14 Days</button>
+              <button data-horizon="30" class="btn-reactive btn-pill horizon-pill">30 Days</button>
+              <button data-horizon="60" class="btn-reactive btn-pill horizon-pill">60 Days</button>
+              <button data-horizon="90" class="btn-reactive btn-pill horizon-pill">90 Days</button>
+
+              <button onclick="runPrediction()" id="run-prediction-btn" class="btn-reactive btn-primary px-5 py-2 rounded-xl text-xs font-bold ml-auto shadow-lg shadow-cyan-500/25 flex items-center">
+                <i class="fas fa-bolt mr-2 text-cyan-400"></i> Run Time Series Prediction
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Prediction Result Summary & Evaluation Metrics in Indian Rupees (₹) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          
+          <!-- Left: Prediction Outlook Card -->
+          <div class="glass-panel p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-slate-400">Projected Target Price (₹)</span>
+              <span id="pred-trend-call" class="text-xs font-bold px-2 py-0.5 rounded-md bg-white/5">Bullish Uptrend</span>
+            </div>
+            <div class="flex items-baseline gap-3">
+              <div id="pred-target-price" class="text-3xl font-black font-mono theme-text-primary">₹0.00</div>
+              <div id="pred-change-pct" class="text-sm font-bold text-emerald-400">+₹0.00 (+0.0%)</div>
+            </div>
+            <div class="pt-2 border-t border-white/5 space-y-1">
+              <div id="pred-model-display" class="text-xs font-bold text-cyan-400">Ensemble Consensus Model</div>
+              <p id="pred-model-desc" class="text-[11px] text-slate-400 leading-relaxed">
+                Dynamic variance-weighted blend of multiple statistical time-series models.
+              </p>
+            </div>
+          </div>
+
+          <!-- Right: Model Evaluation Scorecard Card -->
+          <div class="glass-panel p-4 space-y-2.5">
+            <div class="flex items-center justify-between pb-1.5 border-b border-white/5">
+              <span class="text-xs font-bold text-slate-200">Model Accuracy Scorecard</span>
+              <span class="text-[10px] text-slate-400 font-mono">Out-of-Sample Backtest</span>
+            </div>
+            
+            <div class="grid grid-cols-3 gap-2 text-center pt-1">
+              <div class="p-2 rounded-xl bg-white/5">
+                <div class="text-[10px] uppercase text-slate-400">RMSE (₹)</div>
+                <div id="metric-rmse" class="text-xs font-bold font-mono theme-text-primary mt-0.5">₹0.00</div>
+              </div>
+              <div class="p-2 rounded-xl bg-white/5">
+                <div class="text-[10px] uppercase text-slate-400">MAE (₹)</div>
+                <div id="metric-mae" class="text-xs font-bold font-mono theme-text-primary mt-0.5">₹0.00</div>
+              </div>
+              <div class="p-2 rounded-xl bg-white/5">
+                <div class="text-[10px] uppercase text-slate-400">MAPE (%)</div>
+                <div id="metric-mape" class="text-xs font-bold font-mono theme-text-primary mt-0.5">0.0%</div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 text-center pt-1">
+              <div class="p-2 rounded-xl bg-white/5">
+                <div class="text-[10px] uppercase text-slate-400">R² Fit Score</div>
+                <div id="metric-r2" class="text-xs font-bold font-mono text-cyan-400 mt-0.5">0.000</div>
+              </div>
+              <div class="p-2 rounded-xl bg-white/5">
+                <div class="text-[10px] uppercase text-slate-400">Directional Accuracy</div>
+                <div id="metric-dir-acc" class="text-xs font-bold font-mono text-emerald-400 mt-0.5">0.0%</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 10 Featured Trades Master Table Card -->
+        <div class="glass-panel p-5 space-y-3">
+          <div class="flex items-center justify-between pb-2 border-b border-white/10">
+            <div class="flex items-center gap-2">
+              <i class="fas fa-list-ol text-cyan-400 text-xs"></i>
+              <h3 class="font-bold text-xs uppercase tracking-wider text-slate-200">The 10 Core Trades & Trading Categories</h3>
+            </div>
+            <span class="text-[10px] text-emerald-400 font-mono font-semibold">Live INR Currency</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead>
+                <tr class="border-b border-white/10 text-[10px] uppercase text-slate-400">
+                  <th class="py-2 px-2.5">#</th>
+                  <th class="py-2 px-2.5">Market</th>
+                  <th class="py-2 px-2.5">Trading Category</th>
+                  <th class="py-2 px-2.5 text-right">Price Unit</th>
+                  <th class="py-2 px-2.5 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-white/5 font-mono text-[11px]">
+                <tr class="hover:bg-white/5 transition-colors cursor-pointer" onclick="loadStockData('NIFTY50')">
+                  <td class="py-2.5 px-2.5 font-bold text-cyan-400">1</td>
+                  <td class="py-2.5 px-2.5 font-bold theme-text-primary font-sans">NIFTY 50</td>
+                  <td class="py-2.5 px-2.5"><span class="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 font-sans text-[10px] font-semibold">Indian indices</span></td>
+                  <td class="py-2.5 px-2.5 text-right text-slate-300">Points (₹)</td>
+                  <td class="py-2.5 px-2.5 text-right"><span class="text-cyan-400 font-sans text-[11px] font-semibold hover:underline">Forecast <i class="fas fa-arrow-right text-[9px]"></i></span></td>
+                </tr>
+                <tr class="hover:bg-white/5 transition-colors cursor-pointer" onclick="loadStockData('BANKNIFTY')">
+                  <td class="py-2.5 px-2.5 font-bold text-cyan-400">2</td>
+                  <td class="py-2.5 px-2.5 font-bold theme-text-primary font-sans">BANK NIFTY</td>
+                  <td class="py-2.5 px-2.5"><span class="px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 font-sans text-[10px] font-semibold">Index trading</span></td>
+                  <td class="py-2.5 px-2.5 text-right text-slate-300">Points (₹)</td>
+                  <td class="py-2.5 px-2.5 text-right"><span class="text-cyan-400 font-sans text-[11px] font-semibold hover:underline">Forecast <i class="fas fa-arrow-right text-[9px]"></i></span></td>
+                </tr>
+                <tr class="hover:bg-white/5 transition-colors cursor-pointer" onclick="loadStockData('SENSEX')">
+                  <td class="py-2.5 px-2.5 font-bold text-cyan-400">3</td>
+                  <td class="py-2.5 px-2.5 font-bold theme-text-primary font-sans">SENSEX</td>
+                  <td class="py-2.5 px-2.5"><span class="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 font-sans text-[10px] font-semibold">Indian indices</span></td>
+                  <td class="py-2.5 px-2.5 text-right text-slate-300">Points (₹)</td>
+                  <td class="py-2.5 px-2.5 text-right"><span class="text-cyan-400 font-sans text-[11px] font-semibold hover:underline">Forecast <i class="fas fa-arrow-right text-[9px]"></i></span></td>
+                </tr>
+                <tr class="hover:bg-white/5 transition-colors cursor-pointer" onclick="loadStockData('GOLD')">
+                  <td class="py-2.5 px-2.5 font-bold text-cyan-400">4</td>
+                  <td class="py-2.5 px-2.5 font-bold theme-text-primary font-sans">Gold (XAU/USD)</td>
+                  <td class="py-2.5 px-2.5"><span class="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 font-sans text-[10px] font-semibold">Commodities</span></td>
+                  <td class="py-2.5 px-2.5 text-right text-slate-300">₹ per 10 grams</td>
+                  <td class="py-2.5 px-2.5 text-right"><span class="text-cyan-400 font-sans text-[11px] font-semibold hover:underline">Forecast <i class="fas fa-arrow-right text-[9px]"></i></span></td>
+                </tr>
+                <tr class="hover:bg-white/5 transition-colors cursor-pointer" onclick="loadStockData('SILVER')">
+                  <td class="py-2.5 px-2.5 font-bold text-cyan-400">5</td>
+                  <td class="py-2.5 px-2.5 font-bold theme-text-primary font-sans">Silver (XAG/USD)</td>
+                  <td class="py-2.5 px-2.5"><span class="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 font-sans text-[10px] font-semibold">Commodities</span></td>
+                  <td class="py-2.5 px-2.5 text-right text-slate-300">₹ per 1 kg</td>
+                  <td class="py-2.5 px-2.5 text-right"><span class="text-cyan-400 font-sans text-[11px] font-semibold hover:underline">Forecast <i class="fas fa-arrow-right text-[9px]"></i></span></td>
+                </tr>
+                <tr class="hover:bg-white/5 transition-colors cursor-pointer" onclick="loadStockData('CRUDEOIL')">
+                  <td class="py-2.5 px-2.5 font-bold text-cyan-400">6</td>
+                  <td class="py-2.5 px-2.5 font-bold theme-text-primary font-sans">Crude Oil</td>
+                  <td class="py-2.5 px-2.5"><span class="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 font-sans text-[10px] font-semibold">Commodities</span></td>
+                  <td class="py-2.5 px-2.5 text-right text-slate-300">₹ per Barrel</td>
+                  <td class="py-2.5 px-2.5 text-right"><span class="text-cyan-400 font-sans text-[11px] font-semibold hover:underline">Forecast <i class="fas fa-arrow-right text-[9px]"></i></span></td>
+                </tr>
+                <tr class="hover:bg-white/5 transition-colors cursor-pointer" onclick="loadStockData('BTC')">
+                  <td class="py-2.5 px-2.5 font-bold text-cyan-400">7</td>
+                  <td class="py-2.5 px-2.5 font-bold theme-text-primary font-sans">Bitcoin (BTC/USD)</td>
+                  <td class="py-2.5 px-2.5"><span class="px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-400 font-sans text-[10px] font-semibold">Crypto</span></td>
+                  <td class="py-2.5 px-2.5 text-right text-slate-300">₹ per Coin</td>
+                  <td class="py-2.5 px-2.5 text-right"><span class="text-cyan-400 font-sans text-[11px] font-semibold hover:underline">Forecast <i class="fas fa-arrow-right text-[9px]"></i></span></td>
+                </tr>
+                <tr class="hover:bg-white/5 transition-colors cursor-pointer" onclick="loadStockData('ETH')">
+                  <td class="py-2.5 px-2.5 font-bold text-cyan-400">8</td>
+                  <td class="py-2.5 px-2.5 font-bold theme-text-primary font-sans">Ethereum (ETH/USD)</td>
+                  <td class="py-2.5 px-2.5"><span class="px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-400 font-sans text-[10px] font-semibold">Crypto</span></td>
+                  <td class="py-2.5 px-2.5 text-right text-slate-300">₹ per Coin</td>
+                  <td class="py-2.5 px-2.5 text-right"><span class="text-cyan-400 font-sans text-[11px] font-semibold hover:underline">Forecast <i class="fas fa-arrow-right text-[9px]"></i></span></td>
+                </tr>
+                <tr class="hover:bg-white/5 transition-colors cursor-pointer" onclick="loadStockData('USDINR')">
+                  <td class="py-2.5 px-2.5 font-bold text-cyan-400">9</td>
+                  <td class="py-2.5 px-2.5 font-bold theme-text-primary font-sans">USD/INR</td>
+                  <td class="py-2.5 px-2.5"><span class="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 font-sans text-[10px] font-semibold">Forex</span></td>
+                  <td class="py-2.5 px-2.5 text-right text-slate-300">₹ per 1 USD</td>
+                  <td class="py-2.5 px-2.5 text-right"><span class="text-cyan-400 font-sans text-[11px] font-semibold hover:underline">Forecast <i class="fas fa-arrow-right text-[9px]"></i></span></td>
+                </tr>
+                <tr class="hover:bg-white/5 transition-colors cursor-pointer" onclick="loadStockData('NASDAQ100')">
+                  <td class="py-2.5 px-2.5 font-bold text-cyan-400">10</td>
+                  <td class="py-2.5 px-2.5 font-bold theme-text-primary font-sans">NASDAQ 100</td>
+                  <td class="py-2.5 px-2.5"><span class="px-2 py-0.5 rounded-md bg-teal-500/10 text-teal-400 font-sans text-[10px] font-semibold">Global indices</span></td>
+                  <td class="py-2.5 px-2.5 text-right text-slate-300">Points (₹)</td>
+                  <td class="py-2.5 px-2.5 text-right"><span class="text-cyan-400 font-sans text-[11px] font-semibold hover:underline">Forecast <i class="fas fa-arrow-right text-[9px]"></i></span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right 4 Columns: Technical Indicators & Watchlist Sidebar -->
+      <div class="lg:col-span-4 space-y-6">
+
+        <!-- Technical Analysis Consensus Card -->
+        <div class="glass-panel p-5 space-y-4">
+          <div class="flex items-center justify-between pb-3 border-b border-white/10">
+            <h2 class="font-bold text-sm theme-text-primary flex items-center gap-2">
+              <i class="fas fa-compass text-emerald-400 text-xs"></i>
+              <span>Algorithmic Signals</span>
+            </h2>
+            <span id="tech-verdict-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold border">
+              Neutral
+            </span>
+          </div>
+
+          <!-- Quantitative Technical Score Meter -->
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-slate-400 font-medium">Momentum Strength:</span>
+              <span id="tech-score-num" class="font-mono font-bold text-cyan-400">0</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div id="tech-score-bar" class="progress-bar-fill" style="width: 50%; background-color: #f59e0b;"></div>
+            </div>
+            <div class="flex justify-between text-[10px] text-slate-400">
+              <span>Bearish (-100)</span>
+              <span>Neutral (0)</span>
+              <span>Bullish (+100)</span>
+            </div>
+          </div>
+
+          <!-- Pivot Support & Resistance Levels in Indian Rupees (₹) -->
+          <div class="p-3 rounded-xl bg-white/5 space-y-2">
+            <div class="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Key Pivot Levels (₹ INR)</div>
+            <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+              <div>
+                <span class="text-slate-400 text-[10px]">Resistance 2:</span>
+                <div id="r2-val" class="font-bold text-rose-400">₹0.00</div>
+              </div>
+              <div>
+                <span class="text-slate-400 text-[10px]">Resistance 1:</span>
+                <div id="r1-val" class="font-bold text-rose-300">₹0.00</div>
+              </div>
+              <div>
+                <span class="text-slate-400 text-[10px]">Pivot Point:</span>
+                <div id="pivot-val" class="font-bold text-amber-400">₹0.00</div>
+              </div>
+              <div>
+                <span class="text-slate-400 text-[10px]">Support 1:</span>
+                <div id="s1-val" class="font-bold text-emerald-300">₹0.00</div>
+              </div>
+              <div>
+                <span class="text-slate-400 text-[10px]">Support 2:</span>
+                <div id="s2-val" class="font-bold text-emerald-400">₹0.00</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Technical Signals Checklist -->
+          <div class="space-y-2">
+            <div class="text-[11px] font-bold text-slate-400 uppercase">Signal Diagnostics</div>
+            <ul id="technical-signals-list" class="space-y-1">
+              <!-- Dynamically Injected -->
+            </ul>
+          </div>
+        </div>
+
+        <!-- RSI & MACD Sub-charts Station -->
+        <div class="glass-panel p-4 space-y-4">
+          <!-- RSI Chart -->
+          <div>
+            <div class="flex items-center justify-between text-xs font-semibold mb-1">
+              <span class="text-slate-300">RSI (14) Momentum</span>
+              <span class="text-[10px] text-slate-400">Overbought &gt; 70 | Oversold &lt; 30</span>
+            </div>
+            <div class="h-24 w-full">
+              <canvas id="rsi-chart"></canvas>
+            </div>
+          </div>
+
+          <!-- MACD Chart -->
+          <div class="pt-3 border-t border-white/5">
+            <div class="flex items-center justify-between text-xs font-semibold mb-1">
+              <span class="text-slate-300">MACD (12, 26, 9)</span>
+              <span class="text-[10px] text-cyan-400">Convergence / Divergence</span>
+            </div>
+            <div class="h-28 w-full">
+              <canvas id="macd-chart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Personal Watchlist & Prediction History -->
+        <div class="glass-panel p-4 space-y-3">
+          <div class="flex items-center justify-between pb-2 border-b border-white/10">
+            <div class="flex items-center gap-2">
+              <i class="fas fa-star text-amber-400 text-xs"></i>
+              <h3 class="font-bold text-xs">Your Watchlist</h3>
+            </div>
+            <span class="text-[10px] text-slate-400 font-mono">1-Click Switch</span>
+          </div>
+
+          <!-- Watchlist Items -->
+          <div id="watchlist-container" class="space-y-1 max-h-48 overflow-y-auto pr-1">
+            <!-- Dynamically populated -->
+          </div>
+
+          <!-- Recent Prediction Logs -->
+          <div class="pt-3 border-t border-white/5 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold text-slate-400 uppercase">Recent AI Logs</span>
+              <i class="fas fa-history text-[10px] text-slate-400"></i>
+            </div>
+            <div id="history-container" class="space-y-1 max-h-36 overflow-y-auto pr-1">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ==========================================
+       MODAL 1: Authentication Modal (Gmail Username)
+       ========================================== -->
+  <div id="auth-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay hidden">
+    <div class="modal-content w-full max-w-md p-6 relative">
+      
+      <!-- Close Button -->
+      <button onclick="closeAuthModal()" class="btn-reactive absolute right-4 top-4 w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
+        <i class="fas fa-times text-xs"></i>
+      </button>
+
+      <!-- Modal Header (Simple & Clean) -->
+      <div class="text-center mb-5">
+        <h3 class="text-xl font-extrabold theme-text-primary tracking-tight">Access QuantPulse</h3>
+        <p class="text-xs text-slate-400 mt-1">Sign in using your Gmail address as username</p>
+      </div>
+
+      <!-- Auth Tabs: Login, Register, Forgot -->
+      <div class="flex rounded-xl bg-white/5 p-1 mb-5">
+        <button id="auth-tab-login" onclick="switchAuthTab('login')" class="btn-reactive flex-1 py-1.5 text-xs font-semibold rounded-lg text-slate-300 transition-all active">
+          Sign In
+        </button>
+        <button id="auth-tab-register" onclick="switchAuthTab('register')" class="btn-reactive flex-1 py-1.5 text-xs font-semibold rounded-lg text-slate-300 transition-all">
+          Create Account
+        </button>
+        <button id="auth-tab-forgot" onclick="switchAuthTab('forgot')" class="btn-reactive flex-1 py-1.5 text-xs font-semibold rounded-lg text-slate-300 transition-all">
+          Reset Password
+        </button>
+      </div>
+
+      <!-- Pane 1: Sign In -->
+      <div id="auth-pane-login" class="space-y-4">
+        <div id="login-error" class="hidden text-xs text-rose-400 bg-rose-500/10 border border-rose-500/30 p-2.5 rounded-xl"></div>
+        
+        <form onsubmit="handleLogin(event)" class="space-y-3.5">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Gmail / Username:</label>
+            <div class="input-box">
+              <span class="input-icon"><i class="fab fa-google text-cyan-400"></i></span>
+              <input type="email" id="login-email" placeholder="e.g. user@gmail.com" required />
+            </div>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-xs font-medium text-slate-300">Password:</label>
+              <button type="button" onclick="switchAuthTab('forgot')" class="no-reactive text-[11px] text-cyan-400 hover:underline">Forgot password?</button>
+            </div>
+            <div class="input-box">
+              <span class="input-icon"><i class="fas fa-lock"></i></span>
+              <input type="password" id="login-password" placeholder="••••••••" required />
+              <button type="button" onclick="togglePasswordVisibility('login-password', 'eye-login')" class="no-reactive input-btn-eye" title="Toggle password visibility">
+                <i id="eye-login" class="fas fa-eye text-xs"></i>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-reactive btn-primary w-full py-2.5 rounded-xl text-xs font-bold shadow-lg shadow-cyan-500/25">
+            <i class="fas fa-sign-in-alt mr-1.5"></i> Sign In to Terminal
+          </button>
+        </form>
+
+        <!-- 1-Click Demo Login Shortcut -->
+        <div class="pt-3 border-t border-white/10 text-center">
+          <button type="button" onclick="fillDemoAccount()" class="btn-reactive btn-secondary w-full py-2 rounded-xl text-xs font-semibold text-cyan-400 flex items-center justify-center gap-2">
+            <i class="fas fa-magic"></i>
+            <span>Instant Demo Login (trader@gmail.com)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Pane 2: Register -->
+      <div id="auth-pane-register" class="space-y-4 hidden">
+        <div id="reg-error" class="hidden text-xs text-rose-400 bg-rose-500/10 border border-rose-500/30 p-2.5 rounded-xl"></div>
+        
+        <form onsubmit="handleRegister(event)" class="space-y-3.5">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Full Name:</label>
+            <div class="input-box">
+              <span class="input-icon"><i class="fas fa-user"></i></span>
+              <input type="text" id="reg-name" placeholder="Rajesh Kumar" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Gmail (Username):</label>
+            <div class="input-box">
+              <span class="input-icon"><i class="fab fa-google text-cyan-400"></i></span>
+              <input type="email" id="reg-email" placeholder="rajesh@gmail.com" required />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Password (Editable anytime in profile):</label>
+            <div class="input-box">
+              <span class="input-icon"><i class="fas fa-lock"></i></span>
+              <input type="password" id="reg-password" placeholder="At least 6 characters" minlength="6" required />
+              <button type="button" onclick="togglePasswordVisibility('reg-password', 'eye-reg')" class="no-reactive input-btn-eye" title="Toggle password visibility">
+                <i id="eye-reg" class="fas fa-eye text-xs"></i>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-reactive btn-primary w-full py-2.5 rounded-xl text-xs font-bold shadow-lg shadow-cyan-500/25">
+            <i class="fas fa-user-check mr-1.5"></i> Register Account
+          </button>
+        </form>
+      </div>
+
+      <!-- Pane 3: Reset Password (Direct by Gmail) -->
+      <div id="auth-pane-forgot" class="space-y-4 hidden">
+        <div id="reset-error" class="hidden text-xs text-rose-400 bg-rose-500/10 border border-rose-500/30 p-2.5 rounded-xl"></div>
+        
+        <form onsubmit="handleResetPassword(event)" class="space-y-3.5">
+          <p class="text-[11px] text-slate-400">Enter your registered Gmail address to update/reset your password directly.</p>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Your Registered Gmail:</label>
+            <div class="input-box">
+              <span class="input-icon"><i class="fab fa-google text-cyan-400"></i></span>
+              <input type="email" id="reset-email" placeholder="your@gmail.com" required />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">New Password:</label>
+            <div class="input-box">
+              <span class="input-icon"><i class="fas fa-key"></i></span>
+              <input type="password" id="reset-new-password" placeholder="New password (min 6 chars)" minlength="6" required />
+              <button type="button" onclick="togglePasswordVisibility('reset-new-password', 'eye-reset-1')" class="no-reactive input-btn-eye">
+                <i id="eye-reset-1" class="fas fa-eye text-xs"></i>
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Confirm New Password:</label>
+            <div class="input-box">
+              <span class="input-icon"><i class="fas fa-check-double text-cyan-400"></i></span>
+              <input type="password" id="reset-confirm-password" placeholder="Confirm new password" minlength="6" required />
+              <button type="button" onclick="togglePasswordVisibility('reset-confirm-password', 'eye-reset-2')" class="no-reactive input-btn-eye">
+                <i id="eye-reset-2" class="fas fa-eye text-xs"></i>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-reactive btn-primary w-full py-2.5 rounded-xl text-xs font-bold">
+            <i class="fas fa-sync-alt mr-1.5"></i> Update Password Now
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ==========================================
+       MODAL 2: Edit Password Modal (Logged-In User)
+       ========================================== -->
+  <div id="edit-password-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay hidden">
+    <div class="modal-content w-full max-w-md p-6 relative">
+      
+      <button onclick="closeEditPasswordModal()" class="btn-reactive absolute right-4 top-4 w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
+        <i class="fas fa-times text-xs"></i>
+      </button>
+
+      <div class="mb-5">
+        <h3 class="text-base font-bold theme-text-primary">Edit Your Password</h3>
+        <p class="text-xs text-slate-400 mt-0.5">Update your security credentials safely</p>
+      </div>
+
+      <div id="edit-pass-error" class="hidden text-xs text-rose-400 bg-rose-500/10 border border-rose-500/30 p-2.5 rounded-xl mb-4"></div>
+
+      <form onsubmit="handleUpdatePassword(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Current Password:</label>
+          <div class="input-box">
+            <span class="input-icon"><i class="fas fa-lock-open"></i></span>
+            <input type="password" id="edit-pass-current" required placeholder="Enter current password" />
+            <button type="button" onclick="togglePasswordVisibility('edit-pass-current', 'eye-curr')" class="no-reactive input-btn-eye" title="Toggle password visibility">
+              <i id="eye-curr" class="fas fa-eye text-xs"></i>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">New Password:</label>
+          <div class="input-box">
+            <span class="input-icon"><i class="fas fa-key text-cyan-400"></i></span>
+            <input type="password" id="edit-pass-new" required minlength="6" placeholder="At least 6 characters" />
+            <button type="button" onclick="togglePasswordVisibility('edit-pass-new', 'eye-new')" class="no-reactive input-btn-eye" title="Toggle password visibility">
+              <i id="eye-new" class="fas fa-eye text-xs"></i>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Confirm New Password:</label>
+          <div class="input-box">
+            <span class="input-icon"><i class="fas fa-check-double text-cyan-400"></i></span>
+            <input type="password" id="edit-pass-confirm" required minlength="6" placeholder="Repeat new password" />
+            <button type="button" onclick="togglePasswordVisibility('edit-pass-confirm', 'eye-conf')" class="no-reactive input-btn-eye" title="Toggle password visibility">
+              <i id="eye-conf" class="fas fa-eye text-xs"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button type="button" onclick="closeEditPasswordModal()" class="btn-reactive btn-secondary px-4 py-2 rounded-xl text-xs font-semibold">
+            Cancel
+          </button>
+          <button type="submit" class="btn-reactive btn-primary px-5 py-2 rounded-xl text-xs font-bold">
+            <i class="fas fa-save mr-1.5"></i> Save New Password
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+
+  <!-- ==========================================
+       MODAL 3: Account Profile Settings Modal
+       ========================================== -->
+  <div id="profile-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay hidden">
+    <div class="modal-content w-full max-w-md p-6 relative">
+      
+      <button onclick="closeProfileModal()" class="btn-reactive absolute right-4 top-4 w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
+        <i class="fas fa-times text-xs"></i>
+      </button>
+
+      <div class="mb-5">
+        <h3 class="text-base font-bold theme-text-primary">Account Profile</h3>
+        <p class="text-xs text-slate-400 mt-0.5">Personalize your trader dashboard</p>
+      </div>
+
+      <form onsubmit="handleSaveProfile(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Your Gmail Username (Permanent):</label>
+          <div class="input-box opacity-75">
+            <span class="input-icon"><i class="fab fa-google text-cyan-400"></i></span>
+            <input type="text" id="prof-email-display" disabled class="cursor-not-allowed opacity-80" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Display Name:</label>
+          <div class="input-box">
+            <span class="input-icon"><i class="fas fa-user text-cyan-400"></i></span>
+            <input type="text" id="prof-name-input" required placeholder="Your Name" />
+          </div>
+        </div>
+
+        <div class="pt-2 border-t border-white/5 flex items-center justify-between">
+          <button type="button" onclick="closeProfileModal(); openEditPasswordModal();" class="text-xs text-cyan-400 hover:underline flex items-center gap-1.5">
+            <i class="fas fa-key"></i>
+            <span>Change Password</span>
+          </button>
+
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="closeProfileModal()" class="btn-reactive btn-secondary px-3 py-1.5 rounded-xl text-xs font-semibold">
+              Close
+            </button>
+            <button type="submit" class="btn-reactive btn-primary px-4 py-1.5 rounded-xl text-xs font-bold">
+              Save Changes
+            </button>
+          </div>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- JavaScript Modules -->
+  <script src="/static/js/cursor-fx.js"></script>
+  <script src="/static/js/auth.js"></script>
+  <script src="/static/js/charts.js"></script>
+  <script src="/static/js/app.js"></script>
+
+</body>
+</html>
